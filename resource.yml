@@ -1,0 +1,97 @@
+HeatTemplateFormatVersion: '2012-12-12'
+Outputs:
+  info: {Description: Container info., Value: '{"Fn::GetAtt": ["DockerContainer",
+      "info"]}'}
+  logs: {Description: Container logs., Value: '{"Fn::GetAtt": ["DockerContainer",
+      "logs"]}'}
+  logs_head: {Description: Container first logs line., Value: '{"Fn::GetAtt": ["DockerContainer",
+      "logs_head"]}'}
+  logs_tail: {Description: Container last logs line., Value: '{"Fn::GetAtt": ["DockerContainer",
+      "logs_tail"]}'}
+  network_gateway: {Description: Container ip gateway., Value: '{"Fn::GetAtt": ["DockerContainer",
+      "network_gateway"]}'}
+  network_info: {Description: Container network info., Value: '{"Fn::GetAtt": ["DockerContainer",
+      "network_info"]}'}
+  network_ip: {Description: Container ip address., Value: '{"Fn::GetAtt": ["DockerContainer",
+      "network_ip"]}'}
+  network_tcp_ports: {Description: Container TCP ports., Value: '{"Fn::GetAtt": ["DockerContainer",
+      "network_tcp_ports"]}'}
+  network_udp_ports: {Description: Container UDP ports., Value: '{"Fn::GetAtt": ["DockerContainer",
+      "network_udp_ports"]}'}
+Parameters:
+  cmd:
+    Default: []
+    Description: Command to run after spawning the container.
+    Type: CommaDelimitedList
+  dns: {Description: Set custom dns servers., Type: CommaDelimitedList}
+  docker_endpoint: {Description: Docker daemon endpoint (by default the local docker
+      daemon will be used)., Type: String}
+  env: {Description: Set environment variables., Type: CommaDelimitedList}
+  hostname: {Default: '', Description: Hostname of the container., Type: String}
+  image: {Description: Image name., Type: String}
+  links: {Description: Links to other containers., Type: Json}
+  memory: {Default: 0, Description: Memory limit (Bytes)., Type: Number}
+  name: {Description: Name of the container., Type: String}
+  open_stdin:
+    AllowedValues: ['True', 'true', 'False', 'false']
+    Default: false
+    Description: Open stdin.
+    Type: String
+  port_bindings: {Description: TCP/UDP ports bindings., Type: Json}
+  port_specs: {Description: TCP/UDP ports mapping., Type: CommaDelimitedList}
+  privileged:
+    AllowedValues: ['True', 'true', 'False', 'false']
+    Default: false
+    Description: Enable extended privileges.
+    Type: String
+  stdin_once:
+    AllowedValues: ['True', 'true', 'False', 'false']
+    Default: false
+    Description: If true, close stdin after the 1 attached client disconnects.
+    Type: String
+  tty:
+    AllowedValues: ['True', 'true', 'False', 'false']
+    Default: false
+    Description: Allocate a pseudo-tty.
+    Type: String
+  user: {Default: '', Description: Username or UID., Type: String}
+  volumes:
+    Default: {}
+    Description: Create a bind mount.
+    Type: Json
+  volumes_from: {Default: '', Description: Mount all specified volumes., Type: String}
+Resources:
+  DockerContainer:
+    Properties:
+      cmd:
+        Fn::Split:
+        - ','
+        - {Ref: cmd}
+      dns:
+        Fn::Split:
+        - ','
+        - {Ref: dns}
+      docker_endpoint: {Ref: docker_endpoint}
+      env:
+        Fn::Split:
+        - ','
+        - {Ref: env}
+      hostname: {Ref: hostname}
+      image: {Ref: image}
+      links: {Ref: links}
+      memory: {Ref: memory}
+      name: {Ref: name}
+      open_stdin: {Ref: open_stdin}
+      port_bindings: {Ref: port_bindings}
+      port_specs:
+        Fn::Split:
+        - ','
+        - {Ref: port_specs}
+      privileged: {Ref: privileged}
+      stdin_once: {Ref: stdin_once}
+      tty: {Ref: tty}
+      user: {Ref: user}
+      volumes: {Ref: volumes}
+      volumes_from: {Ref: volumes_from}
+    Type: DockerInc::Docker::Container
+
