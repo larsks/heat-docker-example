@@ -39,6 +39,7 @@ resources:
   fixed_network:
     type: "OS::Neutron::Net"
 
+  # This is the subnet on which we will deploy our docker server.
   fixed_subnet:
     type: "OS::Neutron::Subnet"
     properties:
@@ -48,6 +49,8 @@ resources:
       dns_nameservers:
         - get_param: dns_nameserver
 
+  # create a router attached to the external network provided as a
+  # parameter to this stack.
   extrouter:
     type: "OS::Neutron::Router"
     properties:
@@ -55,6 +58,7 @@ resources:
         network:
           get_param: external_network_id
 
+  # attached fixed_subnet to our extrouter router.
   extrouter_inside:
     type: "OS::Neutron::RouterInterface"
     properties:
@@ -65,6 +69,12 @@ resources:
           fixed_subnet
 
   ######################################################################
+  #
+  # security groups.  we need to permit network traffic of various
+  # sorts.
+  #
+
+  # this permits ssh and icmp traffic
   secgroup_common:
     type: "OS::Neutron::SecurityGroup"
     properties:
@@ -74,6 +84,7 @@ resources:
           port_range_max: 22
           protocol: tcp
 
+  # this permits mysql traffic
   secgroup_db:
     type: "OS::Neutron::SecurityGroup"
     properties:
@@ -82,6 +93,7 @@ resources:
           port_range_max: 3306
           protocol: tcp
 
+  # this permits access to the docker server we're setting up.
   secgroup_docker:
     type: "OS::Neutron::SecurityGroup"
     properties:
@@ -90,6 +102,7 @@ resources:
           port_range_max: 2375
           protocol: tcp
 
+  # this permits http/https traffic
   secgroup_webserver:
     type: "OS::Neutron::SecurityGroup"
     properties:
@@ -138,25 +151,35 @@ resources:
       key_name: lars
       user_data_format: RAW
       user_data:
+        # We're using Heat's 'str_replace' function in order to
+        # substitute into this script the Heat-generated URL for
+        # signaling the docker_wait_condition resource.
         str_replace:
           template: |
             #!/bin/sh
             
             yum -y upgrade
 
+            # I have occasionally seen 'yum install' fail with errors
+            # trying to contact mirrors.  Because it can be a pain to
+            # delete and re-create the stack, just loop here until it
+            # succeeds.
             while :; do
               yum -y install docker-io
               [ -x /usr/bin/docker ] && break
               sleep 5
             done
 
+            # Add a docker option to listen on tcp port 2375.
             cat >> /etc/sysconfig/docker <<EOF
             OPTIONS="--selinux-enabled -H tcp://0.0.0.0:2375"
             EOF
 
+            # Start and anable the docker service.
             systemctl start docker.service
             systemctl enable docker.service
 
+            # Signal heat that we are finished settings things up.
             cfn-signal -e0 --data 'OK' -r 'Setup complete' '$WAIT_HANDLE'
           params:
             "$WAIT_HANDLE":
@@ -164,6 +187,9 @@ resources:
       networks:
         - port:
             get_resource: docker_server_eth0
+
+  # attach a port to the server with a fixed address from
+  # fixed_subnet and associate it with appropriate security groups.
   docker_server_eth0:
     type: "OS::Neutron::Port"
     properties:
@@ -182,6 +208,9 @@ resources:
         - subnet_id:
             get_resource:
               fixed_subnet
+
+  # associate a floating ip address with the port created in the
+  # previous resource.
   docker_server_floating:
     type: "OS::Neutron::FloatingIP"
     properties:
@@ -196,10 +225,18 @@ resources:
   # database container.  this runs the official mysql container.  we
   # map port 3306 in the container to port 3306 on the host.
   #
+  # The 'depends_on' clause in this resource definition means that
+  # Heat will not attempt to instantiate this resource until we signal
+  # the docker_wait_condition.
+  #
   docker_dbserver:
     type: "DockerInc::Docker::Container"
     depends_on: docker_wait_condition
     properties:
+      # set the docker enpoint to a url pointing at the ip address of
+      # the docker_server we started, above.  We use Heat's
+      # 'str_replace' function in order to substitute the address into
+      # the URL.
       docker_endpoint:
         str_replace:
           template: http://$HOST:2375/
@@ -207,6 +244,9 @@ resources:
             "$HOST": { get_attr: [ docker_server_floating, floating_ip_address ] }
       image: mysql
       env: 
+        # The official MySQL docker image expect the database root
+        # password to be provided in the MYSQL_ROOT_PASSWORD
+        # environment variable.
         - str_replace:
             template: MYSQL_ROOT_PASSWORD=$PASSWORD
             params:
