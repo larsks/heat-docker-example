@@ -1,3 +1,5 @@
+# This is the output of "heat resource-template DockerInc::Docker::Container".
+
 HeatTemplateFormatVersion: '2012-12-12'
 Outputs:
   info: {Description: Container info., Value: '{"Fn::GetAtt": ["DockerContainer",
