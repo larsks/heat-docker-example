@@ -27,6 +27,11 @@ parameters:
     description: address of a dns nameserver reachable in your environment
     default: 8.8.8.8
 
+  ssh_key_name:
+    type: string
+    description: name of ssh key to be provisioned on docker server
+    default: lars
+
 resources:
 
   ######################################################################
@@ -148,7 +153,8 @@ resources:
         get_param: server_image
       flavor:
         get_param: server_flavor
-      key_name: lars
+      key_name:
+        get_param: ssh_key_name
       user_data_format: RAW
       user_data:
         # We're using Heat's 'str_replace' function in order to
