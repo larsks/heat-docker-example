@@ -134,7 +134,8 @@ resources:
 
   docker_wait_condition:
     type: "AWS::CloudFormation::WaitCondition"
-    depends_on: [docker_server]
+    depends_on:
+      - docker_server
     properties:
       Handle:
         get_resource: docker_wait_handle
@@ -248,7 +249,8 @@ resources:
   #
   docker_dbserver:
     type: "DockerInc::Docker::Container"
-    depends_on: docker_wait_condition
+    depends_on:
+      - docker_wait_condition
     properties:
       # set the docker enpoint to a url pointing at the ip address of
       # the docker_server we started, above.  We use Heat's
@@ -282,7 +284,8 @@ resources:
   #
   docker_webserver:
     type: "DockerInc::Docker::Container"
-    depends_on: docker_wait_condition
+    depends_on:
+      - docker_wait_condition
     properties:
       docker_endpoint:
         str_replace:
