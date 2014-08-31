@@ -176,14 +176,25 @@ resources:
               sleep 5
             done
 
-            # Add a docker option to listen on tcp port 2375.
-            cat >> /etc/sysconfig/docker <<EOF
-            OPTIONS="--selinux-enabled -H tcp://0.0.0.0:2375"
+            # Add a tcp socket for docker
+            cat > /etc/systemd/system/docker-tcp.socket <<EOF
+            [Unit]
+            Description=Docker remote access socket
+
+            [Socket]
+            ListenStream=2375
+            BindIPv6Only=both
+            Service=docker.service
+
+            [Install]
+            WantedBy=sockets.target
             EOF
 
-            # Start and anable the docker service.
-            systemctl start docker.service
-            systemctl enable docker.service
+            # Start and enable the docker service.
+            for sock in docker.socket docker-tcp.socket; do
+              systemctl start $sock
+              systemctl enable $sock
+            done
 
             # Signal heat that we are finished settings things up.
             cfn-signal -e0 --data 'OK' -r 'Setup complete' '$WAIT_HANDLE'
