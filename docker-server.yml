@@ -231,6 +231,10 @@ resources:
   # previous resource.
   docker_server_floating:
     type: "OS::Neutron::FloatingIP"
+    # workaround for stack delete problems as suggested in:
+    # https://bugs.launchpad.net/heat/+bug/1299259/comments/4
+    depends_on:
+      - extrouter_inside
     properties:
       floating_network_id:
         get_param:
