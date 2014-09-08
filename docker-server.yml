@@ -262,7 +262,7 @@ resources:
       # the URL.
       docker_endpoint:
         str_replace:
-          template: tcp://$HOST:2375
+          template: "tcp://$HOST:2375"
           params:
             "$HOST":
               get_attr:
@@ -296,7 +296,7 @@ resources:
     properties:
       docker_endpoint:
         str_replace:
-          template: http://$HOST:2375/
+          template: "tcp://$HOST:2375"
           params:
             "$HOST": { get_attr: [ docker_server_floating, floating_ip_address ] }
       image: larsks/simpleweb
